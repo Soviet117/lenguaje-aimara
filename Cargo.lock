@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "lexer_rust"
+name = "compilador_aimara"
 version = "0.1.0"

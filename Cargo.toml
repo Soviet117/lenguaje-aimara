@@ -1,5 +1,5 @@
 [package]
-name = "lexer_rust"
+name = "compilador_aimara"
 version = "0.1.0"
 edition = "2024"
 
