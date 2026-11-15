@@ -1,44 +1,115 @@
-Compilador Ashaninka
-====================
+Compilador Aimara
+=================
 
-Este proyecto es un analizador léxico para un lenguaje de programación 
-basado en Python, desarrollado como parte del curso de Lenguajes y 
-Compiladores.
+Analizador léxico y sintáctico de un lenguaje de programación inspirado en
+el aimara, escrito en Rust para el curso de Lenguaje y Compiladores de la
+UCSS.
 
-¿Por qué Ashaninka?
--------------------
+El proyecto comenzó como un analizador para el lenguaje Ashaninka. En esta
+versión se migraron las palabras reservadas, el ejemplo principal y la
+documentación al aimara. El objetivo final es completar las fases de un
+compilador: análisis léxico, sintáctico y semántico, tabla de símbolos,
+generación de código intermedio, optimización, ensamblador y código máquina.
 
-Elegí el idioma ashaninka como homenaje a la valiente lucha de esta 
-población nativa contra Sendero Luminoso en los años 80 y 90. Su 
-resistencia y defensa del territorio fueron fundamentales para la 
-historia del Perú. Este proyecto busca visibilizar su lengua en el 
-mundo de la tecnología.
+¿Por qué Aimara?
+----------------
 
-Sintaxis Implementada
----------------------
+El aimara (aymara aru) es una de las lenguas originarias más habladas de
+los Andes y tiene presencia en Perú, Bolivia y Chile. Usar sus palabras
+para nombrar las construcciones de un lenguaje de programación es una
+forma de llevar la lengua al terreno de la tecnología y de visibilizar su
+valor cultural.
 
-El lenguaje usa palabras reservadas abreviadas del ashaninka:
+Vocabulario del lenguaje
+------------------------
 
-* toy  → entero (int)
-* pai  → si (if)
-* pawa → imprimir (print)
+| Palabra aimara | Español | Uso |
+| --- | --- | --- |
+| `aru` | texto / palabra | tipo de dato |
+| `jakhu` | número entero | tipo de dato |
+| `t'aqa` | fracción / flotante | tipo de dato |
+| `ukhamax` | si | condicional |
+| `ukhamarak` | sino si | condicional encadenado |
+| `janukax` | sino | condicional alternativo |
+| `kama` | mientras | bucle |
+| `taki` | para | bucle |
+| `lurawi` | función / tarea | declaración de función |
+| `kutt'a` | retornar | retorno de función |
+| `p'aki` | romper | interrupción de bucle |
+| `saranta` | continuar | continuación de bucle |
+| `qillqa` | escribir / imprimir | salida |
+| `ulli` | leer | entrada |
+| `chiqa` | verdadero | valor booleano |
+| `k'ari` | falso | valor booleano |
 
-Ejemplo de código:
+Algunas palabras se usan como convención del lenguaje a partir de su
+sentido en aimara; por ejemplo, `ukhamax` expresa la idea de "entonces" o
+"en ese caso". La tabla completa y la gramática actual están en
+[LENGUAJE.md](LENGUAJE.md).
 
-toy edad = 18
-pai edad >= 18 {
-    pawa "Mayor de edad"
+Ejemplo
+-------
+
+El archivo [main.aym](main.aym) contiene un programa de prueba:
+
+```text
+aru suti = 'Soviet'
+jakhu mara = 4
+t'aqa pachpa = 1.2
+jakhu yupa = 5
+
+jakhu qhipa = 7
+
+lurawi suma {
+    jakhu x = 2
+    qillqa(x)
 }
+
+lurawi apsu {
+    qillqa()
+}
+```
+
+Estado actual
+-------------
+
+| Fase | Estado | Implementado |
+| --- | --- | --- |
+| Análisis lexicográfico | Básico | palabras reservadas, enteros, flotantes, textos, identificadores y símbolos |
+| Análisis sintáctico | Básico | declaraciones, asignaciones, funciones y `qillqa()` |
+| Análisis semántico | Pendiente | aún no se valida el significado del programa |
+| Tabla de símbolos | Pendiente | aún no se registran ámbitos ni tipos |
+| Traducción / código intermedio | Pendiente | el AST todavía no se traduce |
+| Generación de ensamblador | Pendiente | no se emite ensamblador |
+| Generación de código máquina | Pendiente | no se genera un ejecutable |
+
+La hoja de ruta detallada, con las tareas que faltan para cerrar el
+compilador, está en [ROADMAP.md](ROADMAP.md).
 
 Estructura
 ----------
 
-src/main.rs  - Código fuente del analizador léxico
-main.ask     - Archivo de ejemplo
+```text
+src/main.rs   Código fuente del lexer, del parser y del AST
+main.aym      Programa de ejemplo en aimara
+LENGUAJE.md   Vocabulario y gramática del lenguaje
+ROADMAP.md    Fases pendientes del compilador
+```
 
 Compilar y ejecutar
 -------------------
 
+```bash
 cargo build --release
-cargo run -- programa.ashaninka
+cargo run -- main.aym
+cargo test
+```
 
+Si no se indica un archivo, el programa analiza un ejemplo interno.
+
+Nota de migración
+-----------------
+
+Las palabras del lenguaje Ashaninka (`asanki`, `toy`, `kametsa`, `tas`,
+`pawa`, entre otras) ya no se reconocen. El código antiguo debe usar el
+vocabulario aimara de la tabla anterior.
