@@ -1,29 +1,32 @@
 #![allow(dead_code)]
-use std::fs;
 use std::env;
+use std::fs;
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
-    // Palabras reservadas
-    AsankiKeyword,
-    ToyKeyword,
-    KametsaKeyword,
-    PaiKeyword,
-    PaiTeKeyword,
-    KamKeyword,
-    KaraKeyword,
-    TasKeyword,
-    PawKeyword,
-    IroqKeyword,
-    IrokKeyword,
-    PawaKeyword,
-    ToyaKeyword,
-    
+    // Palabras reservadas del lenguaje Aimara
+    AruKeyword,       // aru: texto
+    JakhuKeyword,     // jakhu: entero
+    TaqaKeyword,      // t'aqa: flotante
+    UkhamaxKeyword,   // ukhamax: si
+    UkhamarakKeyword, // ukhamarak: sino si
+    JanukaxKeyword,   // janukax: sino
+    KamaKeyword,      // kama: mientras
+    TakiKeyword,      // taki: para
+    LurawiKeyword,    // lurawi: funcion
+    KuttaKeyword,     // kutt'a: retornar
+    PakiKeyword,      // p'aki: romper
+    SarantaKeyword,   // saranta: continuar
+    QillqaKeyword,    // qillqa: imprimir
+    UlliKeyword,      // ulli: leer
+    ChiqaKeyword,     // chiqa: verdadero
+    KariKeyword,      // k'ari: falso
+
     // Valores
-    Asanki(String),
-    Toy(u32),
-    Kametsa(f32),
-    
+    Texto(String),
+    Entero(u32),
+    Flotante(f32),
+
     // Otros
     Variable(String),
     Equal,
@@ -105,32 +108,35 @@ impl Lexer {
 
     fn clasificar_token(&mut self, palabra: String) -> Option<Token> {
         if self.termina_con_comilla() {
-            return Some(Token::Asanki(palabra));
+            return Some(Token::Texto(palabra));
         }
 
         match palabra.as_str() {
-            "toy" => return Some(Token::ToyKeyword),
-            "kametsa" => return Some(Token::KametsaKeyword),
-            "asanki" => return Some(Token::AsankiKeyword),
-            "pai" => return Some(Token::PaiKeyword),
-            "pai_te" => return Some(Token::PaiTeKeyword),
-            "kam" => return Some(Token::KamKeyword),
-            "kara" => return Some(Token::KaraKeyword),
-            "tas" => return Some(Token::TasKeyword),
-            "paw" => return Some(Token::PawKeyword),
-            "iroq" => return Some(Token::IroqKeyword),
-            "irok" => return Some(Token::IrokKeyword),
-            "pawa" => return Some(Token::PawaKeyword),
-            "toya" => return Some(Token::ToyaKeyword),
+            "aru" => return Some(Token::AruKeyword),
+            "jakhu" => return Some(Token::JakhuKeyword),
+            "t'aqa" => return Some(Token::TaqaKeyword),
+            "ukhamax" => return Some(Token::UkhamaxKeyword),
+            "ukhamarak" => return Some(Token::UkhamarakKeyword),
+            "janukax" => return Some(Token::JanukaxKeyword),
+            "kama" => return Some(Token::KamaKeyword),
+            "taki" => return Some(Token::TakiKeyword),
+            "lurawi" => return Some(Token::LurawiKeyword),
+            "kutt'a" => return Some(Token::KuttaKeyword),
+            "p'aki" => return Some(Token::PakiKeyword),
+            "saranta" => return Some(Token::SarantaKeyword),
+            "qillqa" => return Some(Token::QillqaKeyword),
+            "ulli" => return Some(Token::UlliKeyword),
+            "chiqa" => return Some(Token::ChiqaKeyword),
+            "k'ari" => return Some(Token::KariKeyword),
             _ => {}
         }
 
         if palabra.contains('.') {
             let valor = palabra.parse::<f32>().expect("Error al parsear flotante");
-            Some(Token::Kametsa(valor))
+            Some(Token::Flotante(valor))
         } else if palabra.chars().all(|c| c.is_ascii_digit()) {
             let valor = palabra.parse::<u32>().expect("Error al parsear entero");
-            Some(Token::Toy(valor))
+            Some(Token::Entero(valor))
         } else {
             Some(Token::Variable(palabra))
         }
@@ -147,17 +153,17 @@ impl Lexer {
 
 #[derive(Debug)]
 enum Tipo {
-    Asanki,
-    Toy,
-    Kametsa,
+    Aru,
+    Jakhu,
+    Taqa,
 }
 
 #[derive(Debug)]
 enum Expresion {
     Variable(String),
-    Asanki(String),
-    Toy(u32),
-    Kametsa(f32),
+    Texto(String),
+    Entero(u32),
+    Flotante(f32),
 }
 
 #[derive(Debug)]
@@ -168,7 +174,7 @@ enum Sentencia {
     Asignacion(String, Expresion),
     // Funcion: Nombre y la lista de sentencias dentro de sus llaves
     Funcion(String, Vec<Sentencia>),
-    // Llamada: Imprimir (pawa) una variable
+    // Llamada: Imprimir (qillqa) una variable
     Llamada(String),
 }
 
@@ -222,12 +228,12 @@ impl Parser {
         let token = self.token_actual.clone().ok_or("Fin de archivo inesperado")?;
 
         match token {
-            // 1. Declaraciones de variables: asanki/toy/kametsa nombre = valor
-            Token::AsankiKeyword | Token::ToyKeyword | Token::KametsaKeyword => {
+            // 1. Declaraciones de variables: aru/jakhu/t'aqa nombre = valor
+            Token::AruKeyword | Token::JakhuKeyword | Token::TaqaKeyword => {
                 let tipo = match token {
-                    Token::AsankiKeyword => Tipo::Asanki,
-                    Token::ToyKeyword => Tipo::Toy,
-                    Token::KametsaKeyword => Tipo::Kametsa,
+                    Token::AruKeyword => Tipo::Aru,
+                    Token::JakhuKeyword => Tipo::Jakhu,
+                    Token::TaqaKeyword => Tipo::Taqa,
                     _ => unreachable!(),
                 };
                 self.avanzar(); // Saltamos el tipo de variable
@@ -252,10 +258,10 @@ impl Parser {
 
                 // Esperamos el valor de la variable
                 let valor = self.parsear_expresion()?;
-                
+
                 // Permitir punto y coma ';' opcional
                 let _ = self.coincidir(Token::Semicolon);
-                
+
                 Ok(Sentencia::Declaracion(tipo, nombre, valor))
             }
 
@@ -272,16 +278,16 @@ impl Parser {
                 }
 
                 let valor = self.parsear_expresion()?;
-                
+
                 let _ = self.coincidir(Token::Semicolon);
-                
+
                 Ok(Sentencia::Asignacion(nombre, valor))
             }
 
-            // 2. Funciones: tas nombre { cuerpo }
-            Token::TasKeyword => {
-                self.avanzar(); // Saltamos 'tas'
-                
+            // 2. Funciones: lurawi nombre { cuerpo }
+            Token::LurawiKeyword => {
+                self.avanzar(); // Saltamos 'lurawi'
+
                 // Esperamos el nombre de la función
                 let nombre = match self.token_actual.clone() {
                     Some(Token::Variable(n)) => {
@@ -307,32 +313,32 @@ impl Parser {
                 if !self.coincidir(Token::RBrace) {
                     return Err(format!("Se esperaba '}}' al finalizar la función '{}', pero se llegó al fin del archivo", nombre));
                 }
-                
+
                 Ok(Sentencia::Funcion(nombre, cuerpo))
             }
 
-            // 3. Llamadas: pawa(variable)
-            Token::PawaKeyword => {
-                self.avanzar(); // Saltamos 'pawa'
-                
+            // 3. Llamadas: qillqa(variable)
+            Token::QillqaKeyword => {
+                self.avanzar(); // Saltamos 'qillqa'
+
                 // Esperamos '('
                 if !self.coincidir(Token::LParen) {
-                    return Err(format!("Se esperaba '(' después de 'pawa', pero se encontró: {:?}", self.token_actual));
+                    return Err(format!("Se esperaba '(' después de 'qillqa', pero se encontró: {:?}", self.token_actual));
                 }
-                
+
                 // Esperamos la variable
                 let variable = match self.token_actual.clone() {
                     Some(Token::Variable(v)) => {
                         self.avanzar();
                         v
                     }
-                    Some(t) => return Err(format!("Se esperaba una variable dentro de pawa(), pero se encontró: {:?}", t)),
-                    None => return Err("Se esperaba una variable dentro de pawa(), pero se llegó al fin del archivo".to_string()),
+                    Some(t) => return Err(format!("Se esperaba una variable dentro de qillqa(), pero se encontró: {:?}", t)),
+                    None => return Err("Se esperaba una variable dentro de qillqa(), pero se llegó al fin del archivo".to_string()),
                 };
 
                 // Esperamos ')'
                 if !self.coincidir(Token::RParen) {
-                    return Err(format!("Se esperaba ')' para cerrar la llamada a pawa, pero se encontró: {:?}", self.token_actual));
+                    return Err(format!("Se esperaba ')' para cerrar la llamada a qillqa, pero se encontró: {:?}", self.token_actual));
                 }
 
                 let _ = self.coincidir(Token::Semicolon);
@@ -349,9 +355,9 @@ impl Parser {
         let token = self.token_actual.clone().ok_or("Se esperaba un valor, pero se llegó al fin del archivo")?;
         let expresion = match token {
             Token::Variable(n) => Expresion::Variable(n),
-            Token::Asanki(s) => Expresion::Asanki(s),
-            Token::Toy(v) => Expresion::Toy(v),
-            Token::Kametsa(v) => Expresion::Kametsa(v),
+            Token::Texto(s) => Expresion::Texto(s),
+            Token::Entero(v) => Expresion::Entero(v),
+            Token::Flotante(v) => Expresion::Flotante(v),
             _ => return Err(format!("Se esperaba un valor o variable, pero se encontró: {:?}", token)),
         };
         self.avanzar();
@@ -365,7 +371,7 @@ fn main() {
     let codigo = if args.len() > 1 {
         fs::read_to_string(&args[1]).expect("No se pudo leer el archivo")
     } else {
-        "asanki stri = 'Soviet'\ntoy ent = 4\nkametsa flo = 1.2\ntoy nose = 5\n\ntoy dos 7 =\n\ntas suma{\n    toy x = 2\n    pawa(x)\n}".to_string()
+        "aru suti = 'Soviet'\njakhu mara = 4\nt'aqa pachpa = 1.2\njakhu yupa = 5\n\njakhu qhipa = 7\n\nlurawi suma {\n    jakhu x = 2\n    qillqa(x)\n}\n\nlurawi resta {\n    qillqa(qhipa)\n}".to_string()
     };
 
     println!("Código a analizar:\n{}", codigo);
