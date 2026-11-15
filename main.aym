@@ -1,0 +1,15 @@
+aru suti = 'Soviet'
+jakhu mara = 4
+t'aqa pachpa = 1.2
+jakhu yupa = 5
+
+jakhu qhipa = 7
+
+lurawi suma {
+    jakhu x = 2
+    qillqa(x)
+}
+
+lurawi apsu {
+    qillqa()
+}
