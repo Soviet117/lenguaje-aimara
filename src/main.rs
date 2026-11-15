@@ -482,7 +482,7 @@ fn main() {
     let codigo = if args.len() > 1 {
         fs::read_to_string(&args[1]).expect("No se pudo leer el archivo")
     } else {
-        "aru suti = 'Soviet'\njakhu mara = 4\nt'aqa pachpa = 1.2\njakhu yupa = 5\n\njakhu qhipa = 7\n\nlurawi suma {\n    jakhu x = 2\n    qillqa(x)\n}\n\nlurawi resta {\n    qillqa(qhipa)\n}".to_string()
+        include_str!("../main.aym").to_string()
     };
 
     println!("Código a analizar:\n{}", codigo);
