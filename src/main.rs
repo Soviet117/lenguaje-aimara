@@ -209,14 +209,14 @@ impl Lexer {
 // ESTRUCTURAS DEL AST
 // ==========================================
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Tipo {
     Aru,
     Jakhu,
     Taqa,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Expresion {
     Variable(String),
     Texto(String),
@@ -224,7 +224,7 @@ enum Expresion {
     Flotante(f32),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Sentencia {
     // Declaracion: Tipo de dato, nombre de la variable y su valor inicial
     Declaracion(Tipo, String, Expresion),
@@ -236,7 +236,7 @@ enum Sentencia {
     Impresion(Option<Expresion>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Programa {
     sentencias: Vec<Sentencia>,
 }
@@ -502,5 +502,187 @@ fn main() {
                 println!("ERROR SINTÁCTICO: {}", e);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lexemas(codigo: &str) -> Vec<Token> {
+        let mut lexer = Lexer::nuevo(codigo);
+        let mut tokens = Vec::new();
+        while let Some(token) = lexer.obtener_token() {
+            tokens.push(token);
+        }
+        tokens
+    }
+
+    fn parsear(codigo: &str) -> Result<Programa, String> {
+        Parser::nuevo(Lexer::nuevo(codigo)).parsear_programa()
+    }
+
+    #[test]
+    fn reconoce_todas_las_palabras_reservadas_aimaras() {
+        let entrada = "aru jakhu t'aqa ukhamax ukhamarak janukax kama taki \
+                       lurawi kutt'a p'aki saranta qillqa ulli chiqa k'ari";
+        let esperado = vec![
+            Token::AruKeyword,
+            Token::JakhuKeyword,
+            Token::TaqaKeyword,
+            Token::UkhamaxKeyword,
+            Token::UkhamarakKeyword,
+            Token::JanukaxKeyword,
+            Token::KamaKeyword,
+            Token::TakiKeyword,
+            Token::LurawiKeyword,
+            Token::KuttaKeyword,
+            Token::PakiKeyword,
+            Token::SarantaKeyword,
+            Token::QillqaKeyword,
+            Token::UlliKeyword,
+            Token::ChiqaKeyword,
+            Token::KariKeyword,
+        ];
+
+        assert_eq!(lexemas(entrada), esperado);
+    }
+
+    #[test]
+    fn reconoce_literales_y_simbolos() {
+        let entrada = "aru x = 'hola' 42 1.5 ; , { } ( )";
+        let esperado = vec![
+            Token::AruKeyword,
+            Token::Variable("x".to_string()),
+            Token::Equal,
+            Token::Texto("hola".to_string()),
+            Token::Entero(42),
+            Token::Flotante(1.5),
+            Token::Semicolon,
+            Token::Comma,
+            Token::LBrace,
+            Token::RBrace,
+            Token::LParen,
+            Token::RParen,
+        ];
+
+        assert_eq!(lexemas(entrada), esperado);
+    }
+
+    #[test]
+    fn procesa_escapes_en_los_textos() {
+        assert_eq!(
+            lexemas("'a\\'b\\n'"),
+            vec![Token::Texto("a'b\n".to_string())]
+        );
+    }
+
+    #[test]
+    fn parsea_declaraciones_con_los_tres_tipos() {
+        let ast = parsear("aru suti = 'Soviet'\njakhu mara = 4\nt'aqa pachpa = 1.2")
+            .expect("el programa debería ser válido");
+
+        assert_eq!(
+            ast,
+            Programa {
+                sentencias: vec![
+                    Sentencia::Declaracion(
+                        Tipo::Aru,
+                        "suti".to_string(),
+                        Expresion::Texto("Soviet".to_string()),
+                    ),
+                    Sentencia::Declaracion(Tipo::Jakhu, "mara".to_string(), Expresion::Entero(4),),
+                    Sentencia::Declaracion(
+                        Tipo::Taqa,
+                        "pachpa".to_string(),
+                        Expresion::Flotante(1.2),
+                    ),
+                ],
+            }
+        );
+    }
+
+    #[test]
+    fn parsea_una_funcion_con_qillqa_sin_argumentos() {
+        let ast = parsear("lurawi suma {\n    jakhu x = 2\n    qillqa(x)\n    qillqa()\n}")
+            .expect("la función debería ser válida");
+
+        assert_eq!(
+            ast,
+            Programa {
+                sentencias: vec![Sentencia::Funcion(
+                    "suma".to_string(),
+                    vec![
+                        Sentencia::Declaracion(Tipo::Jakhu, "x".to_string(), Expresion::Entero(2),),
+                        Sentencia::Impresion(Some(Expresion::Variable("x".to_string()))),
+                        Sentencia::Impresion(None),
+                    ],
+                )],
+            }
+        );
+    }
+
+    #[test]
+    fn qillqa_admite_textos_literales() {
+        assert_eq!(
+            parsear("qillqa('hola')").expect("la impresión debería ser válida"),
+            Programa {
+                sentencias: vec![Sentencia::Impresion(Some(Expresion::Texto(
+                    "hola".to_string()
+                )))],
+            }
+        );
+    }
+
+    #[test]
+    fn las_palabras_ashaninkas_ya_no_son_reservadas() {
+        let esperado = vec![
+            Token::Variable("asanki".to_string()),
+            Token::Variable("toy".to_string()),
+            Token::Variable("kametsa".to_string()),
+            Token::Variable("tas".to_string()),
+            Token::Variable("pawa".to_string()),
+        ];
+
+        assert_eq!(lexemas("asanki toy kametsa tas pawa"), esperado);
+    }
+
+    #[test]
+    fn reporta_caracteres_desconocidos_como_error_lexico() {
+        let error = parsear("jakhu x = 1 @ 2").unwrap_err();
+        assert!(
+            error.contains("ERROR LÉXICO"),
+            "error inesperado: {}",
+            error
+        );
+        assert!(
+            error.contains("carácter no reconocido"),
+            "error inesperado: {}",
+            error
+        );
+    }
+
+    #[test]
+    fn reporta_textos_sin_comilla_de_cierre() {
+        let error = parsear("aru suti = 'hola").unwrap_err();
+        assert!(
+            error.contains("ERROR LÉXICO"),
+            "error inesperado: {}",
+            error
+        );
+        assert!(
+            error.contains("sin comilla de cierre"),
+            "error inesperado: {}",
+            error
+        );
+    }
+
+    #[test]
+    fn el_ejemplo_principal_es_valido() {
+        let codigo = include_str!("../main.aym");
+        assert!(
+            parsear(codigo).is_ok(),
+            "main.aym debería analizarse sin errores"
+        );
     }
 }
