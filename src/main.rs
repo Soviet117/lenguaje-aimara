@@ -7,20 +7,20 @@ enum Token {
     // Palabras reservadas del lenguaje Aimara
     AruKeyword,       // aru: texto
     JakhuKeyword,     // jakhu: entero
-    TaqaKeyword,      // t'aqa: flotante
+    TaqaKeyword,      // taqa: flotante
     UkhamaxKeyword,   // ukhamax: si
     UkhamarakKeyword, // ukhamarak: sino si
     JanukaxKeyword,   // janukax: sino
     KamaKeyword,      // kama: mientras
     TakiKeyword,      // taki: para
     LurawiKeyword,    // lurawi: funcion
-    KuttaKeyword,     // kutt'a: retornar
-    PakiKeyword,      // p'aki: romper
+    KuttaKeyword,     // kutta: retornar
+    PakiKeyword,      // paki: romper
     SarantaKeyword,   // saranta: continuar
     QillqaKeyword,    // qillqa: imprimir
     UlliKeyword,      // ulli: leer
     ChiqaKeyword,     // chiqa: verdadero
-    KariKeyword,      // k'ari: falso
+    KariKeyword,      // kari: falso
 
     // Valores
     Texto(String),
@@ -126,7 +126,7 @@ impl Lexer {
     }
 
     fn es_caracter_valido(&self, c: char) -> bool {
-        c.is_alphanumeric() || c == '_' || c == '\'' || c == '.'
+        c.is_alphanumeric() || c == '_' || c == '.'
     }
 
     fn obtener_palabra(&self, inicio: usize) -> String {
@@ -172,20 +172,20 @@ impl Lexer {
         match palabra.as_str() {
             "aru" => return Some(Token::AruKeyword),
             "jakhu" => return Some(Token::JakhuKeyword),
-            "t'aqa" => return Some(Token::TaqaKeyword),
+            "taqa" => return Some(Token::TaqaKeyword),
             "ukhamax" => return Some(Token::UkhamaxKeyword),
             "ukhamarak" => return Some(Token::UkhamarakKeyword),
             "janukax" => return Some(Token::JanukaxKeyword),
             "kama" => return Some(Token::KamaKeyword),
             "taki" => return Some(Token::TakiKeyword),
             "lurawi" => return Some(Token::LurawiKeyword),
-            "kutt'a" => return Some(Token::KuttaKeyword),
-            "p'aki" => return Some(Token::PakiKeyword),
+            "kutta" => return Some(Token::KuttaKeyword),
+            "paki" => return Some(Token::PakiKeyword),
             "saranta" => return Some(Token::SarantaKeyword),
             "qillqa" => return Some(Token::QillqaKeyword),
             "ulli" => return Some(Token::UlliKeyword),
             "chiqa" => return Some(Token::ChiqaKeyword),
-            "k'ari" => return Some(Token::KariKeyword),
+            "kari" => return Some(Token::KariKeyword),
             _ => {}
         }
 
@@ -301,7 +301,7 @@ impl Parser {
             .ok_or("Fin de archivo inesperado")?;
 
         match token {
-            // 1. Declaraciones de variables: aru/jakhu/t'aqa nombre = valor
+            // 1. Declaraciones de variables: aru/jakhu/taqa nombre = valor
             Token::AruKeyword | Token::JakhuKeyword | Token::TaqaKeyword => {
                 let tipo = match token {
                     Token::AruKeyword => Tipo::Aru,
@@ -310,6 +310,7 @@ impl Parser {
                     _ => unreachable!(),
                 };
                 self.avanzar(); // Saltamos el tipo de variable
+                self.verificar_error_lexico()?;
 
                 // Esperamos un identificador (Variable)
                 let nombre = match self.token_actual.clone() {
@@ -328,6 +329,8 @@ impl Parser {
                             .to_string(),
                     ),
                 };
+
+                self.verificar_error_lexico()?;
 
                 // Esperamos el signo '='
                 if !self.coincidir(Token::Equal) {
@@ -349,6 +352,7 @@ impl Parser {
             // 4. Asignaciones directas a variables: nombre = valor
             Token::Variable(nombre) => {
                 self.avanzar(); // Saltamos el nombre
+                self.verificar_error_lexico()?;
 
                 // Esperamos el signo '='
                 if !self.coincidir(Token::Equal) {
@@ -368,6 +372,7 @@ impl Parser {
             // 2. Funciones: lurawi nombre { cuerpo }
             Token::LurawiKeyword => {
                 self.avanzar(); // Saltamos 'lurawi'
+                self.verificar_error_lexico()?;
 
                 // Esperamos el nombre de la función
                 let nombre =
@@ -387,6 +392,8 @@ impl Parser {
                                 .to_string(),
                         ),
                     };
+
+                self.verificar_error_lexico()?;
 
                 // Esperamos llave abierta '{'
                 if !self.coincidir(Token::LBrace) {
@@ -416,6 +423,7 @@ impl Parser {
             // 3. Impresión: qillqa(expresion) o qillqa()
             Token::QillqaKeyword => {
                 self.avanzar(); // Saltamos 'qillqa'
+                self.verificar_error_lexico()?;
 
                 // Esperamos '('
                 if !self.coincidir(Token::LParen) {
@@ -524,8 +532,8 @@ mod tests {
 
     #[test]
     fn reconoce_todas_las_palabras_reservadas_aimaras() {
-        let entrada = "aru jakhu t'aqa ukhamax ukhamarak janukax kama taki \
-                       lurawi kutt'a p'aki saranta qillqa ulli chiqa k'ari";
+        let entrada = "aru jakhu taqa ukhamax ukhamarak janukax kama taki \
+                       lurawi kutta paki saranta qillqa ulli chiqa kari";
         let esperado = vec![
             Token::AruKeyword,
             Token::JakhuKeyword,
@@ -579,7 +587,7 @@ mod tests {
 
     #[test]
     fn parsea_declaraciones_con_los_tres_tipos() {
-        let ast = parsear("aru suti = 'Soviet'\njakhu mara = 4\nt'aqa pachpa = 1.2")
+        let ast = parsear("aru suti = 'Soviet'\njakhu mara = 4\ntaqa pachpa = 1.2")
             .expect("el programa debería ser válido");
 
         assert_eq!(
@@ -645,6 +653,21 @@ mod tests {
         ];
 
         assert_eq!(lexemas("asanki toy kametsa tas pawa"), esperado);
+    }
+
+    #[test]
+    fn los_apostrofos_ya_no_son_parte_del_lenguaje() {
+        let error = parsear("t'aqa pachpa = 1.2").unwrap_err();
+        assert!(
+            error.contains("ERROR LÉXICO"),
+            "error inesperado: {}",
+            error
+        );
+        assert!(
+            error.contains("sin comilla de cierre"),
+            "error inesperado: {}",
+            error
+        );
     }
 
     #[test]
