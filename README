@@ -27,20 +27,20 @@ Vocabulario del lenguaje
 | --- | --- | --- |
 | `aru` | texto / palabra | tipo de dato |
 | `jakhu` | número entero | tipo de dato |
-| `t'aqa` | fracción / flotante | tipo de dato |
+| `taqa` | fracción / flotante | tipo de dato |
 | `ukhamax` | si | condicional |
 | `ukhamarak` | sino si | condicional encadenado |
 | `janukax` | sino | condicional alternativo |
 | `kama` | mientras | bucle |
 | `taki` | para | bucle |
 | `lurawi` | función / tarea | declaración de función |
-| `kutt'a` | retornar | retorno de función |
-| `p'aki` | romper | interrupción de bucle |
+| `kutta` | retornar | retorno de función |
+| `paki` | romper | interrupción de bucle |
 | `saranta` | continuar | continuación de bucle |
 | `qillqa` | escribir / imprimir | salida |
 | `ulli` | leer | entrada |
 | `chiqa` | verdadero | valor booleano |
-| `k'ari` | falso | valor booleano |
+| `kari` | falso | valor booleano |
 
 Algunas palabras se usan como convención del lenguaje a partir de su
 sentido en aimara; por ejemplo, `ukhamax` expresa la idea de "entonces" o
@@ -55,7 +55,7 @@ El archivo [main.aym](main.aym) contiene un programa de prueba:
 ```text
 aru suti = 'Soviet'
 jakhu mara = 4
-t'aqa pachpa = 1.2
+taqa pachpa = 1.2
 jakhu yupa = 5
 
 jakhu qhipa = 7
@@ -105,7 +105,7 @@ cargo run -- main.aym
 cargo test
 ```
 
-Si no se indica un archivo, el programa analiza un ejemplo interno.
+Si no se indica un archivo, el programa analiza [main.aym](main.aym).
 
 Nota de migración
 -----------------
@@ -113,3 +113,7 @@ Nota de migración
 Las palabras del lenguaje Ashaninka (`asanki`, `toy`, `kametsa`, `tas`,
 `pawa`, entre otras) ya no se reconocen. El código antiguo debe usar el
 vocabulario aimara de la tabla anterior.
+
+Además, las palabras clave se escriben sin apóstrofo: `taqa`, `kutta`,
+`paki` y `kari`. El apóstrofo solo se usa para delimitar textos, como en
+`'Soviet'`.

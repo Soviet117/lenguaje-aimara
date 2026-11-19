@@ -4,12 +4,16 @@ Lenguaje Aimara
 Este documento describe el vocabulario y la gramática que el compilador
 reconoce actualmente, además de las convenciones de escritura del lenguaje.
 
-Ortografía
-----------
+Escritura sin apóstrofos
+------------------------
 
-El aimara usa el apóstrofo para marcar consonantes eyectivas, por ejemplo
-en `t'aqa`, `kutt'a`, `p'aki` y `k'ari`. Por eso el lexer permite el
-apóstrofo dentro de los identificadores y palabras reservadas. También se
+El aimara suele usar el apóstrofo para marcar consonantes eyectivas, pero
+en este lenguaje todas las palabras reservadas se escriben sin él para
+facilitar el tipeo en teclados convencionales. Por eso se usan `taqa`,
+`kutta`, `paki` y `kari`, no sus formas con apóstrofo.
+
+El lexer ya no acepta el apóstrofo dentro de identificadores ni de
+palabras reservadas: solo se usa como delimitador de textos. También se
 admiten letras Unicode, como la `ñ`.
 
 Vocabulario
@@ -21,7 +25,7 @@ Vocabulario
 | --- | --- | --- |
 | `aru` | texto / cadena | `aru suti = 'Soviet'` |
 | `jakhu` | entero | `jakhu mara = 4` |
-| `t'aqa` | flotante / fracción | `t'aqa pachpa = 1.2` |
+| `taqa` | flotante / fracción | `taqa pachpa = 1.2` |
 
 ### Control de flujo
 
@@ -38,8 +42,8 @@ Vocabulario
 | Aimara | Español | Estado |
 | --- | --- | --- |
 | `lurawi` | función | implementada sin parámetros |
-| `kutt'a` | retornar | reservada, aún no parseada |
-| `p'aki` | romper | reservada, aún no parseada |
+| `kutta` | retornar | reservada, aún no parseada |
+| `paki` | romper | reservada, aún no parseada |
 | `saranta` | continuar | reservada, aún no parseada |
 
 ### Entrada, salida y booleanos
@@ -49,7 +53,7 @@ Vocabulario
 | `qillqa` | imprimir / escribir | implementada con 0 o 1 argumento |
 | `ulli` | leer | reservada, aún no parseada |
 | `chiqa` | verdadero | reservada, aún no parseada |
-| `k'ari` | falso | reservada, aún no parseada |
+| `kari` | falso | reservada, aún no parseada |
 
 Gramática actual
 ----------------
@@ -65,7 +69,7 @@ sentencia    = declaracion
              | funcion
              | impresion ;
 
-declaracion  = ("aru" | "jakhu" | "t'aqa") IDENT "=" expresion ";"? ;
+declaracion  = ("aru" | "jakhu" | "taqa") IDENT "=" expresion ";"? ;
 asignacion   = IDENT "=" expresion ";"? ;
 funcion      = "lurawi" IDENT "{" sentencia* "}" ;
 impresion    = "qillqa" "(" expresion? ")" ";"? ;
@@ -77,8 +81,9 @@ Reglas léxicas
 --------------
 
 - **Espacios:** se ignoran espacios, tabuladores y saltos de línea.
-- **Identificadores:** letras, dígitos, `_`, apóstrofo y punto. El punto
-  dentro de un identificador todavía no significa acceso a atributos.
+- **Identificadores:** letras, dígitos, `_` y punto. No se admite el
+  apóstrofo. El punto dentro de un identificador todavía no significa
+  acceso a atributos.
 - **Textos:** se escriben entre comillas simples, por ejemplo `'hola'`.
   Se reconocen los escapes `\n`, `\t`, `\\` y `\'`.
 - **Enteros:** secuencias de dígitos sin signo, por ejemplo `42`.
@@ -92,12 +97,12 @@ Limitaciones actuales
 ---------------------
 
 - No hay operadores aritméticos, de comparación ni lógicos.
-- No se parsean `ukhamax`, `kama`, `taki`, `kutt'a`, `p'aki` ni `saranta`.
+- No se parsean `ukhamax`, `kama`, `taki`, `kutta`, `paki` ni `saranta`.
 - Las funciones no reciben parámetros ni argumentos.
 - No existen llamadas a funciones definidas por el usuario.
 - No hay tabla de símbolos ni comprobación de tipos.
 - Los errores no incluyen línea ni columna.
-- Los booleanos `chiqa` y `k'ari` están reservados, pero no forman parte
+- Los booleanos `chiqa` y `kari` están reservados, pero no forman parte
   de las expresiones.
 - No se pueden escribir números negativos ni notación científica.
 
@@ -108,17 +113,17 @@ Equivalencias con la versión Ashaninka
 | --- | --- |
 | `asanki` | `aru` |
 | `toy` | `jakhu` |
-| `kametsa` | `t'aqa` |
+| `kametsa` | `taqa` |
 | `pai` | `ukhamax` |
 | `pai_te` | `ukhamarak` |
 | `kam` | `kama` |
 | `kara` | `taki` |
 | `tas` | `lurawi` |
-| `paw` | `kutt'a` |
-| `iroq` | `p'aki` |
+| `paw` | `kutta` |
+| `iroq` | `paki` |
 | `irok` | `saranta` |
 | `pawa` | `qillqa` |
 | `toya` | `ulli` |
 
-Además se agregaron `janukax` (sino), `chiqa` (verdadero) y `k'ari`
+Además se agregaron `janukax` (sino), `chiqa` (verdadero) y `kari`
 (falso), que no existían en la versión anterior.

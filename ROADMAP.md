@@ -45,7 +45,7 @@ básicos.
 - [ ] Agregar comentarios de línea y de bloque.
 - [ ] Reconocer operadores: `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`,
       `<=`, `>`, `>=`, `&&`, `||`, `!`.
-- [ ] Reconocer booleanos `chiqa` y `k'ari` como literales utilizables.
+- [ ] Reconocer booleanos `chiqa` y `kari` como literales utilizables.
 - [ ] Admitir números negativos y notación científica.
 - [ ] Definir una política de recuperación ante errores léxicos.
 - [ ] Separar el lexer en un módulo propio y exponer el flujo de tokens
@@ -63,7 +63,7 @@ parámetros e impresión con `qillqa`.
       aritmética, comparación, lógica y paréntesis.
 - [ ] Implementar `ukhamax` / `janukax` / `ukhamarak` (si / sino / sino si).
 - [ ] Implementar `kama` (mientras) y `taki` (para).
-- [ ] Implementar `kutt'a` (retornar), `p'aki` (romper) y `saranta`
+- [ ] Implementar `kutta` (retornar), `paki` (romper) y `saranta`
       (continuar).
 - [ ] Agregar parámetros y argumentos a las funciones.
 - [ ] Agregar llamadas a funciones definidas por el usuario.
@@ -84,10 +84,10 @@ Fase 3: análisis semántico
 - [ ] Verificar tipos en declaraciones, asignaciones y operaciones.
 - [ ] Verificar la compatibilidad de tipos en comparaciones y condiciones.
 - [ ] Verificar la aridad y los tipos de los argumentos en llamadas.
-- [ ] Verificar que las funciones que retornan un valor usen `kutt'a`.
+- [ ] Verificar que las funciones que retornan un valor usen `kutta`.
 - [ ] Detectar uso de variables antes de su inicialización.
 - [ ] Reportar errores semánticos con línea y columna.
-- [ ] Definir las reglas de conversión entre `jakhu` y `t'aqa`.
+- [ ] Definir las reglas de conversión entre `jakhu` y `taqa`.
 
 Fase 4: gestión de tabla de símbolos
 ------------------------------------

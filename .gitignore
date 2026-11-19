@@ -13,3 +13,6 @@
 *.swp
 *.swo
 *~
+
+# Guía personal de explicación (no se versiona)
+GUIA_EXPLICACION.txt
