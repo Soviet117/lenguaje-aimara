@@ -50,7 +50,7 @@ Vocabulario
 
 | Aimara | Español | Estado |
 | --- | --- | --- |
-| `qillqa` | imprimir / escribir | implementada con 0 o 1 argumento |
+| `qillqa` | imprimir / escribir | implementada con una variable |
 | `ulli` | leer | reservada, aún no parseada |
 | `chiqa` | verdadero | reservada, aún no parseada |
 | `kari` | falso | reservada, aún no parseada |
@@ -72,7 +72,7 @@ sentencia    = declaracion
 declaracion  = ("aru" | "jakhu" | "taqa") IDENT "=" expresion ";"? ;
 asignacion   = IDENT "=" expresion ";"? ;
 funcion      = "lurawi" IDENT "{" sentencia* "}" ;
-impresion    = "qillqa" "(" expresion? ")" ";"? ;
+impresion    = "qillqa" "(" IDENT ")" ";"? ;
 
 expresion    = IDENT | TEXTO | ENTERO | FLOTANTE ;
 ```
@@ -85,13 +85,12 @@ Reglas léxicas
   apóstrofo. El punto dentro de un identificador todavía no significa
   acceso a atributos.
 - **Textos:** se escriben entre comillas simples, por ejemplo `'hola'`.
-  Se reconocen los escapes `\n`, `\t`, `\\` y `\'`.
+  No se procesan escapes.
 - **Enteros:** secuencias de dígitos sin signo, por ejemplo `42`.
 - **Flotantes:** dígitos con un único punto decimal, por ejemplo `1.2`.
 - **Símbolos:** `=`, `;`, `,`, `{`, `}`, `(`, `)`.
 - **Comentarios:** todavía no se admiten.
-- **Errores:** un carácter desconocido o un texto sin comilla de cierre
-  produce un error léxico.
+- **Caracteres desconocidos:** se ignoran para mantener el lexer simple.
 
 Limitaciones actuales
 ---------------------
@@ -105,6 +104,8 @@ Limitaciones actuales
 - Los booleanos `chiqa` y `kari` están reservados, pero no forman parte
   de las expresiones.
 - No se pueden escribir números negativos ni notación científica.
+- `qillqa` solo acepta una variable, no textos ni `qillqa()`.
+- Los textos sin comilla de cierre se leen hasta el final del archivo.
 
 Equivalencias con la versión Ashaninka
 --------------------------------------

@@ -66,7 +66,7 @@ lurawi suma {
 }
 
 lurawi apsu {
-    qillqa()
+    qillqa(yupa)
 }
 ```
 
@@ -76,7 +76,7 @@ Estado actual
 | Fase | Estado | Implementado |
 | --- | --- | --- |
 | Análisis lexicográfico | Básico | palabras reservadas, enteros, flotantes, textos, identificadores y símbolos |
-| Análisis sintáctico | Básico | declaraciones, asignaciones, funciones y `qillqa()` |
+| Análisis sintáctico | Básico | declaraciones, asignaciones, funciones y `qillqa(variable)` |
 | Análisis semántico | Pendiente | aún no se valida el significado del programa |
 | Tabla de símbolos | Pendiente | aún no se registran ámbitos ni tipos |
 | Traducción / código intermedio | Pendiente | el AST todavía no se traduce |
@@ -115,10 +115,9 @@ Compilar y ejecutar
 ```bash
 cargo build --release
 cargo run -- main.aym
-cargo test
 ```
 
-Si no se indica un archivo, el programa analiza [main.aym](main.aym).
+Si no se indica un archivo, el programa analiza un ejemplo interno.
 
 Nota de migración
 -----------------
