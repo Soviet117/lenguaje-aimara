@@ -4,31 +4,30 @@ use std::fs;
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
-    // Palabras reservadas del lenguaje Aimara
-    AruKeyword,       // aru: texto
-    JakhuKeyword,     // jakhu: entero
-    TaqaKeyword,      // taqa: flotante
-    UkhamaxKeyword,   // ukhamax: si
-    UkhamarakKeyword, // ukhamarak: sino si
-    JanukaxKeyword,   // janukax: sino
-    KamaKeyword,      // kama: mientras
-    TakiKeyword,      // taki: para
-    LurawiKeyword,    // lurawi: funcion
-    KuttaKeyword,     // kutta: retornar
-    PakiKeyword,      // paki: romper
-    SarantaKeyword,   // saranta: continuar
-    QillqaKeyword,    // qillqa: imprimir
-    UlliKeyword,      // ulli: leer
-    ChiqaKeyword,     // chiqa: verdadero
-    KariKeyword,      // kari: falso
+    // Palabras reservadas
+    AruKeyword,
+    JakhuKeyword,
+    TaqaKeyword,
+    UkhamaxKeyword,
+    UkhamarakKeyword,
+    JanukaxKeyword,
+    KamaKeyword,
+    TakiKeyword,
+    LurawiKeyword,
+    KuttaKeyword,
+    PakiKeyword,
+    SarantaKeyword,
+    QillqaKeyword,
+    UlliKeyword,
+    ChiqaKeyword,
+    KariKeyword,
 
     // Valores
-    Texto(String),
-    Entero(u32),
-    Flotante(f32),
+    Aru(String),
+    Jakhu(u32),
+    Taqa(f32),
 
     // Otros
-    Error(String),
     Variable(String),
     Equal,
     Semicolon,
@@ -97,12 +96,8 @@ impl Lexer {
         self.avanzar_mientras_sea_valido();
 
         if inicio == self.pos {
-            let desconocido = self.texto[self.pos];
-            self.pos += 1;
-            return Some(Token::Error(format!(
-                "carácter no reconocido: '{}'",
-                desconocido
-            )));
+            self.pos += 1; // saltar carácter no reconocido
+            return self.obtener_token();
         }
 
         let palabra = self.obtener_palabra(inicio);
@@ -133,39 +128,21 @@ impl Lexer {
         self.texto[inicio..self.pos].iter().collect()
     }
 
-    // Lee un texto entre comillas simples y devuelve su contenido sin comillas.
     fn leer_texto(&mut self) -> Token {
         self.pos += 1; // comilla inicial
         let mut valor = String::new();
 
-        while let Some(&c) = self.texto.get(self.pos) {
-            match c {
-                '\'' => {
-                    self.pos += 1;
-                    return Token::Texto(valor);
-                }
-                '\\' => {
-                    self.pos += 1;
-                    let Some(&escape) = self.texto.get(self.pos) else {
-                        return Token::Error("cadena de texto sin comilla de cierre".to_string());
-                    };
-                    valor.push(match escape {
-                        'n' => '\n',
-                        't' => '\t',
-                        '\\' => '\\',
-                        '\'' => '\'',
-                        otro => otro,
-                    });
-                    self.pos += 1;
-                }
-                _ => {
-                    valor.push(c);
-                    self.pos += 1;
-                }
+        while self.pos < self.texto.len() {
+            let c = self.texto[self.pos];
+            if c == '\'' {
+                self.pos += 1;
+                break;
             }
+            valor.push(c);
+            self.pos += 1;
         }
 
-        Token::Error("cadena de texto sin comilla de cierre".to_string())
+        Token::Aru(valor)
     }
 
     fn clasificar_token(&mut self, palabra: String) -> Option<Token> {
@@ -195,10 +172,10 @@ impl Lexer {
 
         if es_entero {
             let valor = palabra.parse::<u32>().expect("Error al parsear entero");
-            Some(Token::Entero(valor))
+            Some(Token::Jakhu(valor))
         } else if es_flotante {
             let valor = palabra.parse::<f32>().expect("Error al parsear flotante");
-            Some(Token::Flotante(valor))
+            Some(Token::Taqa(valor))
         } else {
             Some(Token::Variable(palabra))
         }
@@ -209,40 +186,36 @@ impl Lexer {
 // ESTRUCTURAS DEL AST
 // ==========================================
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 enum Tipo {
     Aru,
     Jakhu,
     Taqa,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 enum Expresion {
     Variable(String),
-    Texto(String),
-    Entero(u32),
-    Flotante(f32),
+    Aru(String),
+    Jakhu(u32),
+    Taqa(f32),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 enum Sentencia {
-    // Declaracion: Tipo de dato, nombre de la variable y su valor inicial
     Declaracion(Tipo, String, Expresion),
-    // Asignacion: Nombre de variable y su nuevo valor
     Asignacion(String, Expresion),
-    // Funcion: Nombre y la lista de sentencias dentro de sus llaves
     Funcion(String, Vec<Sentencia>),
-    // Impresion: qillqa puede recibir una expresion o ningun argumento
-    Impresion(Option<Expresion>),
+    Llamada(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 struct Programa {
     sentencias: Vec<Sentencia>,
 }
 
 // ==========================================
-// PARSER CON VALIDACIÓN
+// PARSER
 // ==========================================
 
 struct Parser {
@@ -259,7 +232,6 @@ impl Parser {
         }
     }
 
-    // Avanza al siguiente token generado por el lexer
     fn avanzar(&mut self) {
         self.token_actual = self.lexer.obtener_token();
     }
@@ -274,34 +246,23 @@ impl Parser {
         false
     }
 
-    fn verificar_error_lexico(&self) -> Result<(), String> {
-        if let Some(Token::Error(mensaje)) = &self.token_actual {
-            return Err(format!("ERROR LÉXICO: {}", mensaje));
-        }
-        Ok(())
-    }
-
-    // Parsea todo el texto y retorna Result. Si encuentra un error, se detiene inmediatamente.
     fn parsear_programa(&mut self) -> Result<Programa, String> {
         let mut sentencias = Vec::new();
         while self.token_actual.is_some() {
-            self.verificar_error_lexico()?;
             let sentencia = self.parsear_sentencia()?;
             sentencias.push(sentencia);
         }
         Ok(Programa { sentencias })
     }
 
-    // Valida la sintaxis del lenguaje
     fn parsear_sentencia(&mut self) -> Result<Sentencia, String> {
-        self.verificar_error_lexico()?;
         let token = self
             .token_actual
             .clone()
             .ok_or("Fin de archivo inesperado")?;
 
         match token {
-            // 1. Declaraciones de variables: aru/jakhu/taqa nombre = valor
+            // 1. Declaración: aru/jakhu/taqa nombre = valor
             Token::AruKeyword | Token::JakhuKeyword | Token::TaqaKeyword => {
                 let tipo = match token {
                     Token::AruKeyword => Tipo::Aru,
@@ -309,10 +270,8 @@ impl Parser {
                     Token::TaqaKeyword => Tipo::Taqa,
                     _ => unreachable!(),
                 };
-                self.avanzar(); // Saltamos el tipo de variable
-                self.verificar_error_lexico()?;
+                self.avanzar();
 
-                // Esperamos un identificador (Variable)
                 let nombre = match self.token_actual.clone() {
                     Some(Token::Variable(n)) => {
                         self.avanzar();
@@ -324,95 +283,82 @@ impl Parser {
                             t
                         ));
                     }
-                    None => return Err(
-                        "Se esperaba el nombre de la variable, pero se llegó al fin del archivo"
-                            .to_string(),
-                    ),
+                    None => {
+                        return Err(
+                            "Se esperaba el nombre de la variable, pero se llegó al final"
+                                .to_string(),
+                        );
+                    }
                 };
 
-                self.verificar_error_lexico()?;
-
-                // Esperamos el signo '='
                 if !self.coincidir(Token::Equal) {
                     return Err(format!(
-                        "Error en declaración de '{}': se esperaba el símbolo '=' después del nombre, pero se encontró: {:?}",
-                        nombre, self.token_actual
+                        "Error en declaración de '{}': se esperaba '='",
+                        nombre
                     ));
                 }
 
-                // Esperamos el valor de la variable
                 let valor = self.parsear_expresion()?;
-
-                // Permitir punto y coma ';' opcional
                 let _ = self.coincidir(Token::Semicolon);
 
                 Ok(Sentencia::Declaracion(tipo, nombre, valor))
             }
 
-            // 4. Asignaciones directas a variables: nombre = valor
+            // 2. Asignación: nombre = valor
             Token::Variable(nombre) => {
-                self.avanzar(); // Saltamos el nombre
-                self.verificar_error_lexico()?;
+                self.avanzar();
 
-                // Esperamos el signo '='
                 if !self.coincidir(Token::Equal) {
                     return Err(format!(
-                        "Error en asignación: se esperaba '=' después de '{}', pero se encontró: {:?}",
-                        nombre, self.token_actual
+                        "Error en asignación: se esperaba '=' después de '{}'",
+                        nombre
                     ));
                 }
 
                 let valor = self.parsear_expresion()?;
-
                 let _ = self.coincidir(Token::Semicolon);
 
                 Ok(Sentencia::Asignacion(nombre, valor))
             }
 
-            // 2. Funciones: lurawi nombre { cuerpo }
+            // 3. Función: lurawi nombre { cuerpo }
             Token::LurawiKeyword => {
-                self.avanzar(); // Saltamos 'lurawi'
-                self.verificar_error_lexico()?;
+                self.avanzar();
 
-                // Esperamos el nombre de la función
-                let nombre =
-                    match self.token_actual.clone() {
-                        Some(Token::Variable(n)) => {
-                            self.avanzar();
-                            n
-                        }
-                        Some(t) => {
-                            return Err(format!(
-                                "Se esperaba el nombre de la función, pero se encontró: {:?}",
-                                t
-                            ));
-                        }
-                        None => return Err(
-                            "Se esperaba el nombre de la función, pero se llegó al fin del archivo"
+                let nombre = match self.token_actual.clone() {
+                    Some(Token::Variable(n)) => {
+                        self.avanzar();
+                        n
+                    }
+                    Some(t) => {
+                        return Err(format!(
+                            "Se esperaba el nombre de la función, pero se encontró: {:?}",
+                            t
+                        ));
+                    }
+                    None => {
+                        return Err(
+                            "Se esperaba el nombre de la función, pero se llegó al final"
                                 .to_string(),
-                        ),
-                    };
+                        );
+                    }
+                };
 
-                self.verificar_error_lexico()?;
-
-                // Esperamos llave abierta '{'
                 if !self.coincidir(Token::LBrace) {
                     return Err(format!(
-                        "Se esperaba '{{' al iniciar la función '{}', pero se encontró: {:?}",
-                        nombre, self.token_actual
+                        "Se esperaba '{{' al iniciar la función '{}'",
+                        nombre
                     ));
                 }
 
-                // Parseamos todo lo que está dentro de las llaves
                 let mut cuerpo = Vec::new();
                 while self.token_actual.is_some() && self.token_actual != Some(Token::RBrace) {
                     cuerpo.push(self.parsear_sentencia()?);
                 }
 
-                // Esperamos llave cerrada '}'
                 if !self.coincidir(Token::RBrace) {
                     return Err(format!(
-                        "Se esperaba '}}' al finalizar la función '{}', pero se llegó al fin del archivo",
+                        "Se esperaba '}}' al finalizar la función '{}'",
                         nombre
                     ));
                 }
@@ -420,37 +366,40 @@ impl Parser {
                 Ok(Sentencia::Funcion(nombre, cuerpo))
             }
 
-            // 3. Impresión: qillqa(expresion) o qillqa()
+            // 4. Impresión: qillqa(variable)
             Token::QillqaKeyword => {
-                self.avanzar(); // Saltamos 'qillqa'
-                self.verificar_error_lexico()?;
+                self.avanzar();
 
-                // Esperamos '('
                 if !self.coincidir(Token::LParen) {
-                    return Err(format!(
-                        "Se esperaba '(' después de 'qillqa', pero se encontró: {:?}",
-                        self.token_actual
-                    ));
+                    return Err("Se esperaba '(' después de 'qillqa'".to_string());
                 }
 
-                // El argumento es opcional para permitir qillqa()
-                let argumento = if self.token_actual == Some(Token::RParen) {
-                    None
-                } else {
-                    Some(self.parsear_expresion()?)
+                let variable = match self.token_actual.clone() {
+                    Some(Token::Variable(v)) => {
+                        self.avanzar();
+                        v
+                    }
+                    Some(t) => {
+                        return Err(format!(
+                            "Se esperaba una variable dentro de qillqa(), pero se encontró: {:?}",
+                            t
+                        ));
+                    }
+                    None => {
+                        return Err(
+                            "Se esperaba una variable dentro de qillqa(), pero se llegó al final"
+                                .to_string(),
+                        );
+                    }
                 };
 
-                // Esperamos ')'
                 if !self.coincidir(Token::RParen) {
-                    return Err(format!(
-                        "Se esperaba ')' para cerrar la llamada a qillqa, pero se encontró: {:?}",
-                        self.token_actual
-                    ));
+                    return Err("Se esperaba ')' para cerrar qillqa()".to_string());
                 }
 
                 let _ = self.coincidir(Token::Semicolon);
 
-                Ok(Sentencia::Impresion(argumento))
+                Ok(Sentencia::Llamada(variable))
             }
 
             _ => Err(format!(
@@ -460,18 +409,17 @@ impl Parser {
         }
     }
 
-    // Parsea los valores a la derecha de '='
     fn parsear_expresion(&mut self) -> Result<Expresion, String> {
-        self.verificar_error_lexico()?;
         let token = self
             .token_actual
             .clone()
-            .ok_or("Se esperaba un valor, pero se llegó al fin del archivo")?;
+            .ok_or("Se esperaba un valor, pero se llegó al final")?;
+
         let expresion = match token {
             Token::Variable(n) => Expresion::Variable(n),
-            Token::Texto(s) => Expresion::Texto(s),
-            Token::Entero(v) => Expresion::Entero(v),
-            Token::Flotante(v) => Expresion::Flotante(v),
+            Token::Aru(s) => Expresion::Aru(s),
+            Token::Jakhu(v) => Expresion::Jakhu(v),
+            Token::Taqa(v) => Expresion::Taqa(v),
             _ => {
                 return Err(format!(
                     "Se esperaba un valor o variable, pero se encontró: {:?}",
@@ -479,6 +427,7 @@ impl Parser {
                 ));
             }
         };
+
         self.avanzar();
         Ok(expresion)
     }
@@ -490,7 +439,7 @@ fn main() {
     let codigo = if args.len() > 1 {
         fs::read_to_string(&args[1]).expect("No se pudo leer el archivo")
     } else {
-        include_str!("../main.aym").to_string()
+        "aru suti = 'Soviet'\njakhu mara = 4\ntaqa pachpa = 1.2\njakhu yupa = 5\n\njakhu qhipa = 7\n\nlurawi suma {\n    jakhu x = 2\n    qillqa(x)\n}\n\nlurawi apsu {\n    qillqa(yupa)\n}".to_string()
     };
 
     println!("Código a analizar:\n{}", codigo);
@@ -504,11 +453,7 @@ fn main() {
             println!("AST GENERADO CON ÉXITO:\n{:#?}", ast);
         }
         Err(e) => {
-            if e.starts_with("ERROR LÉXICO") {
-                println!("{}", e);
-            } else {
-                println!("ERROR SINTÁCTICO: {}", e);
-            }
+            println!("ERROR SINTÁCTICO: {}", e);
         }
     }
 }
