@@ -86,6 +86,19 @@ Estado actual
 La hoja de ruta detallada, con las tareas que faltan para cerrar el
 compilador, está en [ROADMAP.md](ROADMAP.md).
 
+Diseño simple
+-------------
+
+El proyecto sigue un flujo lineal de compilador:
+
+```text
+fuente .aym  ->  lexer  ->  parser  ->  AST
+```
+
+No hay base de datos, interfaz gráfica ni capas de aplicación. Toda la
+lógica está en `src/main.rs`; el programa solo lee el archivo fuente y
+escribe el AST en la consola.
+
 Estructura
 ----------
 
