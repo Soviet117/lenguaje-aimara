@@ -5,11 +5,24 @@ jakhu yupa = 5
 
 jakhu qhipa = 7
 
+jakhu suma_total = mara + yupa
+qillqa(suma_total)
+
+jakhu resta_total = qhipa - mara
+qillqa(resta_total)
+
+qillqa(suti)
+qillqa(pachpa)
+
 lurawi suma {
     jakhu x = 2
-    qillqa(x)
+    jakhu resultado = x + 3
+    qillqa(resultado)
 }
 
 lurawi apsu {
     qillqa(yupa)
 }
+
+suma()
+apsu()
