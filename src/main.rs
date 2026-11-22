@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 
@@ -24,8 +25,8 @@ enum Token {
 
     // Valores
     Aru(String),
-    Jakhu(u32),
-    Taqa(f32),
+    Jakhu(i64),
+    Taqa(f64),
 
     // Otros
     Variable(String),
@@ -36,6 +37,8 @@ enum Token {
     RBrace,
     LParen,
     RParen,
+    Mas,
+    Menos,
 }
 
 struct Lexer {
@@ -87,6 +90,14 @@ impl Lexer {
             ')' => {
                 self.pos += 1;
                 return Some(Token::RParen);
+            }
+            '+' => {
+                self.pos += 1;
+                return Some(Token::Mas);
+            }
+            '-' => {
+                self.pos += 1;
+                return Some(Token::Menos);
             }
             '\'' => return Some(self.leer_texto()),
             _ => {}
@@ -171,10 +182,10 @@ impl Lexer {
             && palabra.chars().all(|c| c.is_ascii_digit() || c == '.');
 
         if es_entero {
-            let valor = palabra.parse::<u32>().expect("Error al parsear entero");
+            let valor = palabra.parse::<i64>().expect("Error al parsear entero");
             Some(Token::Jakhu(valor))
         } else if es_flotante {
-            let valor = palabra.parse::<f32>().expect("Error al parsear flotante");
+            let valor = palabra.parse::<f64>().expect("Error al parsear flotante");
             Some(Token::Taqa(valor))
         } else {
             Some(Token::Variable(palabra))
@@ -186,27 +197,30 @@ impl Lexer {
 // ESTRUCTURAS DEL AST
 // ==========================================
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Tipo {
     Aru,
     Jakhu,
     Taqa,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Expresion {
     Variable(String),
     Aru(String),
-    Jakhu(u32),
-    Taqa(f32),
+    Jakhu(i64),
+    Taqa(f64),
+    Suma(Box<Expresion>, Box<Expresion>),
+    Resta(Box<Expresion>, Box<Expresion>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Sentencia {
     Declaracion(Tipo, String, Expresion),
     Asignacion(String, Expresion),
     Funcion(String, Vec<Sentencia>),
-    Llamada(String),
+    Imprimir(Expresion),
+    LlamadaFuncion(String),
 }
 
 #[derive(Debug)]
@@ -304,9 +318,20 @@ impl Parser {
                 Ok(Sentencia::Declaracion(tipo, nombre, valor))
             }
 
-            // 2. Asignación: nombre = valor
+            // 2. Asignación o llamada: nombre = valor / nombre()
             Token::Variable(nombre) => {
                 self.avanzar();
+
+                if self.coincidir(Token::LParen) {
+                    if !self.coincidir(Token::RParen) {
+                        return Err(format!(
+                            "Se esperaba ')' al llamar a la función '{}'",
+                            nombre
+                        ));
+                    }
+                    let _ = self.coincidir(Token::Semicolon);
+                    return Ok(Sentencia::LlamadaFuncion(nombre));
+                }
 
                 if !self.coincidir(Token::Equal) {
                     return Err(format!(
@@ -366,7 +391,7 @@ impl Parser {
                 Ok(Sentencia::Funcion(nombre, cuerpo))
             }
 
-            // 4. Impresión: qillqa(variable)
+            // 4. Impresión: qillqa(expresión)
             Token::QillqaKeyword => {
                 self.avanzar();
 
@@ -374,24 +399,7 @@ impl Parser {
                     return Err("Se esperaba '(' después de 'qillqa'".to_string());
                 }
 
-                let variable = match self.token_actual.clone() {
-                    Some(Token::Variable(v)) => {
-                        self.avanzar();
-                        v
-                    }
-                    Some(t) => {
-                        return Err(format!(
-                            "Se esperaba una variable dentro de qillqa(), pero se encontró: {:?}",
-                            t
-                        ));
-                    }
-                    None => {
-                        return Err(
-                            "Se esperaba una variable dentro de qillqa(), pero se llegó al final"
-                                .to_string(),
-                        );
-                    }
-                };
+                let expresion = self.parsear_expresion()?;
 
                 if !self.coincidir(Token::RParen) {
                     return Err("Se esperaba ')' para cerrar qillqa()".to_string());
@@ -399,7 +407,7 @@ impl Parser {
 
                 let _ = self.coincidir(Token::Semicolon);
 
-                Ok(Sentencia::Llamada(variable))
+                Ok(Sentencia::Imprimir(expresion))
             }
 
             _ => Err(format!(
@@ -409,7 +417,30 @@ impl Parser {
         }
     }
 
+    // Expresión con sumas y restas, de izquierda a derecha.
     fn parsear_expresion(&mut self) -> Result<Expresion, String> {
+        let mut izquierda = self.parsear_primario()?;
+
+        loop {
+            let operacion = match self.token_actual {
+                Some(Token::Mas) => Token::Mas,
+                Some(Token::Menos) => Token::Menos,
+                _ => break,
+            };
+            self.avanzar();
+
+            let derecha = self.parsear_primario()?;
+            izquierda = match operacion {
+                Token::Mas => Expresion::Suma(Box::new(izquierda), Box::new(derecha)),
+                Token::Menos => Expresion::Resta(Box::new(izquierda), Box::new(derecha)),
+                _ => unreachable!(),
+            };
+        }
+
+        Ok(izquierda)
+    }
+
+    fn parsear_primario(&mut self) -> Result<Expresion, String> {
         let token = self
             .token_actual
             .clone()
@@ -433,13 +464,163 @@ impl Parser {
     }
 }
 
+// ==========================================
+// INTÉRPRETE
+// ==========================================
+
+#[derive(Debug, Clone)]
+enum Valor {
+    Aru(String),
+    Jakhu(i64),
+    Taqa(f64),
+}
+
+type Entorno = HashMap<String, Valor>;
+type Funciones = HashMap<String, Vec<Sentencia>>;
+
+fn ejecutar_programa(programa: &Programa) -> Result<(), String> {
+    let mut variables = Entorno::new();
+    let mut funciones = Funciones::new();
+    ejecutar_bloque(&programa.sentencias, &mut variables, &mut funciones)
+}
+
+fn ejecutar_bloque(
+    sentencias: &[Sentencia],
+    variables: &mut Entorno,
+    funciones: &mut Funciones,
+) -> Result<(), String> {
+    for sentencia in sentencias {
+        ejecutar_sentencia(sentencia, variables, funciones)?;
+    }
+    Ok(())
+}
+
+fn ejecutar_sentencia(
+    sentencia: &Sentencia,
+    variables: &mut Entorno,
+    funciones: &mut Funciones,
+) -> Result<(), String> {
+    match sentencia {
+        Sentencia::Declaracion(tipo, nombre, expresion) => {
+            if variables.contains_key(nombre) {
+                return Err(format!("La variable '{}' ya está declarada", nombre));
+            }
+
+            let valor = evaluar_expresion(expresion, variables)?;
+
+            if !tipo_correcto(tipo, &valor) {
+                return Err(format!(
+                    "La variable '{}' no coincide con el tipo declarado",
+                    nombre
+                ));
+            }
+
+            variables.insert(nombre.clone(), valor);
+            Ok(())
+        }
+
+        Sentencia::Asignacion(nombre, expresion) => {
+            let valor = evaluar_expresion(expresion, variables)?;
+
+            if !variables.contains_key(nombre) {
+                return Err(format!("La variable '{}' no está declarada", nombre));
+            }
+
+            variables.insert(nombre.clone(), valor);
+            Ok(())
+        }
+
+        Sentencia::Funcion(nombre, cuerpo) => {
+            funciones.insert(nombre.clone(), cuerpo.clone());
+            Ok(())
+        }
+
+        Sentencia::Imprimir(expresion) => {
+            let valor = evaluar_expresion(expresion, variables)?;
+            imprimir_valor(&valor);
+            Ok(())
+        }
+
+        Sentencia::LlamadaFuncion(nombre) => {
+            let cuerpo = funciones
+                .get(nombre)
+                .cloned()
+                .ok_or_else(|| format!("La función '{}' no está definida", nombre))?;
+
+            // Cada llamada tiene sus propias variables locales.
+            let mut locales = variables.clone();
+            ejecutar_bloque(&cuerpo, &mut locales, funciones)
+        }
+    }
+}
+
+fn evaluar_expresion(expresion: &Expresion, variables: &Entorno) -> Result<Valor, String> {
+    match expresion {
+        Expresion::Variable(nombre) => variables
+            .get(nombre)
+            .cloned()
+            .ok_or_else(|| format!("La variable '{}' no está declarada", nombre)),
+
+        Expresion::Aru(s) => Ok(Valor::Aru(s.clone())),
+        Expresion::Jakhu(v) => Ok(Valor::Jakhu(*v)),
+        Expresion::Taqa(v) => Ok(Valor::Taqa(*v)),
+
+        Expresion::Suma(izquierda, derecha) => {
+            let a = evaluar_expresion(izquierda, variables)?;
+            let b = evaluar_expresion(derecha, variables)?;
+            sumar(a, b)
+        }
+
+        Expresion::Resta(izquierda, derecha) => {
+            let a = evaluar_expresion(izquierda, variables)?;
+            let b = evaluar_expresion(derecha, variables)?;
+            restar(a, b)
+        }
+    }
+}
+
+fn sumar(a: Valor, b: Valor) -> Result<Valor, String> {
+    match (a, b) {
+        (Valor::Jakhu(a), Valor::Jakhu(b)) => Ok(Valor::Jakhu(a + b)),
+        (Valor::Jakhu(a), Valor::Taqa(b)) => Ok(Valor::Taqa(a as f64 + b)),
+        (Valor::Taqa(a), Valor::Jakhu(b)) => Ok(Valor::Taqa(a + b as f64)),
+        (Valor::Taqa(a), Valor::Taqa(b)) => Ok(Valor::Taqa(a + b)),
+        _ => Err("Solo se pueden sumar números".to_string()),
+    }
+}
+
+fn restar(a: Valor, b: Valor) -> Result<Valor, String> {
+    match (a, b) {
+        (Valor::Jakhu(a), Valor::Jakhu(b)) => Ok(Valor::Jakhu(a - b)),
+        (Valor::Jakhu(a), Valor::Taqa(b)) => Ok(Valor::Taqa(a as f64 - b)),
+        (Valor::Taqa(a), Valor::Jakhu(b)) => Ok(Valor::Taqa(a - b as f64)),
+        (Valor::Taqa(a), Valor::Taqa(b)) => Ok(Valor::Taqa(a - b)),
+        _ => Err("Solo se pueden restar números".to_string()),
+    }
+}
+
+fn tipo_correcto(tipo: &Tipo, valor: &Valor) -> bool {
+    matches!(
+        (tipo, valor),
+        (Tipo::Aru, Valor::Aru(_)) | (Tipo::Jakhu, Valor::Jakhu(_)) | (Tipo::Taqa, Valor::Taqa(_))
+    )
+}
+
+fn imprimir_valor(valor: &Valor) {
+    match valor {
+        Valor::Aru(s) => println!("{}", s),
+        Valor::Jakhu(v) => println!("{}", v),
+        Valor::Taqa(v) => println!("{}", v),
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     let codigo = if args.len() > 1 {
         fs::read_to_string(&args[1]).expect("No se pudo leer el archivo")
     } else {
-        "aru suti = 'Soviet'\njakhu mara = 4\ntaqa pachpa = 1.2\njakhu yupa = 5\n\njakhu qhipa = 7\n\nlurawi suma {\n    jakhu x = 2\n    qillqa(x)\n}\n\nlurawi apsu {\n    qillqa(yupa)\n}".to_string()
+        "aru suti = 'Soviet'\njakhu mara = 4\ntaqa pachpa = 1.2\njakhu yupa = 5\n\njakhu qhipa = 7\n\njakhu suma_total = mara + yupa\nqillqa(suma_total)\n\njakhu resta_total = qhipa - mara\nqillqa(resta_total)\n\nlurawi suma {\n    jakhu x = 2\n    jakhu resultado = x + 3\n    qillqa(resultado)\n}\n\nlurawi apsu {\n    qillqa(yupa)\n}\n\nsuma()\napssu()".to_string()
     };
 
     println!("Código a analizar:\n{}", codigo);
@@ -451,6 +632,13 @@ fn main() {
     match parser.parsear_programa() {
         Ok(ast) => {
             println!("AST GENERADO CON ÉXITO:\n{:#?}", ast);
+            println!("------------------------------------------------");
+            println!("EJECUCIÓN:");
+
+            match ejecutar_programa(&ast) {
+                Ok(()) => println!("FIN DEL PROGRAMA"),
+                Err(e) => println!("ERROR DE EJECUCIÓN: {}", e),
+            }
         }
         Err(e) => {
             println!("ERROR SINTÁCTICO: {}", e);
