@@ -41,7 +41,7 @@ Vocabulario
 
 | Aimara | Español | Estado |
 | --- | --- | --- |
-| `lurawi` | función | implementada sin parámetros |
+| `lurawi` | función | implementada sin parámetros y se puede llamar |
 | `kutta` | retornar | reservada, aún no parseada |
 | `paki` | romper | reservada, aún no parseada |
 | `saranta` | continuar | reservada, aún no parseada |
@@ -50,7 +50,7 @@ Vocabulario
 
 | Aimara | Español | Estado |
 | --- | --- | --- |
-| `qillqa` | imprimir / escribir | implementada con una variable |
+| `qillqa` | imprimir / escribir | implementada con una expresión |
 | `ulli` | leer | reservada, aún no parseada |
 | `chiqa` | verdadero | reservada, aún no parseada |
 | `kari` | falso | reservada, aún no parseada |
@@ -67,14 +67,17 @@ programa     = sentencia* EOF ;
 sentencia    = declaracion
              | asignacion
              | funcion
-             | impresion ;
+             | impresion
+             | llamada ;
 
 declaracion  = ("aru" | "jakhu" | "taqa") IDENT "=" expresion ";"? ;
 asignacion   = IDENT "=" expresion ";"? ;
 funcion      = "lurawi" IDENT "{" sentencia* "}" ;
-impresion    = "qillqa" "(" IDENT ")" ";"? ;
+impresion    = "qillqa" "(" expresion ")" ";"? ;
+llamada      = IDENT "(" ")" ";"? ;
 
-expresion    = IDENT | TEXTO | ENTERO | FLOTANTE ;
+expresion    = primario (("+" | "-") primario)* ;
+primario     = IDENT | TEXTO | ENTERO | FLOTANTE ;
 ```
 
 Reglas léxicas
@@ -92,20 +95,34 @@ Reglas léxicas
 - **Comentarios:** todavía no se admiten.
 - **Caracteres desconocidos:** se ignoran para mantener el lexer simple.
 
+Ejecución
+---------
+
+Después de analizar el programa, el AST se ejecuta con un intérprete
+sencillo:
+
+- Las declaraciones crean variables en un entorno.
+- Las asignaciones cambian el valor de una variable existente.
+- `lurawi` guarda una función; `nombre()` la ejecuta.
+- Cada llamada usa un entorno local, así las variables creadas dentro de
+  la función no se mezclan con las globales.
+- `qillqa(expresión)` evalúa e imprime el valor.
+- `+` y `-` funcionan con enteros y flotantes.
+
 Limitaciones actuales
 ---------------------
 
-- No hay operadores aritméticos, de comparación ni lógicos.
+- Solo hay sumas (`+`) y restas (`-`); no hay multiplicación, división,
+  comparaciones ni operaciones lógicas.
 - No se parsean `ukhamax`, `kama`, `taki`, `kutta`, `paki` ni `saranta`.
-- Las funciones no reciben parámetros ni argumentos.
-- No existen llamadas a funciones definidas por el usuario.
-- No hay tabla de símbolos ni comprobación de tipos.
+- Las funciones no reciben parámetros y las llamadas son sin argumentos.
+- No hay tabla de símbolos de compilación ni análisis semántico completo.
 - Los errores no incluyen línea ni columna.
 - Los booleanos `chiqa` y `kari` están reservados, pero no forman parte
   de las expresiones.
 - No se pueden escribir números negativos ni notación científica.
-- `qillqa` solo acepta una variable, no textos ni `qillqa()`.
 - Los textos sin comilla de cierre se leen hasta el final del archivo.
+- La ejecución es un intérprete: no se genera ensamblador ni código máquina.
 
 Equivalencias con la versión Ashaninka
 --------------------------------------

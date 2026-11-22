@@ -1,13 +1,14 @@
 Compilador Aimara
 =================
 
-Analizador léxico y sintáctico de un lenguaje de programación inspirado en
+Analizador y ejecutor simple de un lenguaje de programación inspirado en
 el aimara, escrito en Rust para el curso de Lenguaje y Compiladores de la
 UCSS.
 
 El proyecto comenzó como un analizador para el lenguaje Ashaninka. En esta
 versión se migraron las palabras reservadas, el ejemplo principal y la
-documentación al aimara. El objetivo final es completar las fases de un
+documentación al aimara, y se agregó un intérprete mínimo para ejecutar
+programas como `main.aym`. El objetivo final es completar las fases de un
 compilador: análisis léxico, sintáctico y semántico, tabla de símbolos,
 generación de código intermedio, optimización, ensamblador y código máquina.
 
@@ -60,14 +61,38 @@ jakhu yupa = 5
 
 jakhu qhipa = 7
 
+jakhu suma_total = mara + yupa
+qillqa(suma_total)
+
+jakhu resta_total = qhipa - mara
+qillqa(resta_total)
+
+qillqa(suti)
+qillqa(pachpa)
+
 lurawi suma {
     jakhu x = 2
-    qillqa(x)
+    jakhu resultado = x + 3
+    qillqa(resultado)
 }
 
 lurawi apsu {
     qillqa(yupa)
 }
+
+suma()
+apsu()
+```
+
+Salida esperada:
+
+```text
+9
+3
+Soviet
+1.2
+5
+5
 ```
 
 Estado actual
@@ -75,8 +100,9 @@ Estado actual
 
 | Fase | Estado | Implementado |
 | --- | --- | --- |
-| Análisis lexicográfico | Básico | palabras reservadas, enteros, flotantes, textos, identificadores y símbolos |
-| Análisis sintáctico | Básico | declaraciones, asignaciones, funciones y `qillqa(variable)` |
+| Análisis lexicográfico | Básico | palabras reservadas, enteros, flotantes, textos, identificadores, símbolos, `+` y `-` |
+| Análisis sintáctico | Básico | declaraciones, asignaciones, funciones, llamadas sin argumentos y expresiones con `+` y `-` |
+| Ejecución / intérprete | Básico | variables, funciones sin parámetros, `qillqa(expresión)`, sumas y restas |
 | Análisis semántico | Pendiente | aún no se valida el significado del programa |
 | Tabla de símbolos | Pendiente | aún no se registran ámbitos ni tipos |
 | Traducción / código intermedio | Pendiente | el AST todavía no se traduce |
@@ -92,12 +118,12 @@ Diseño simple
 El proyecto sigue un flujo lineal de compilador:
 
 ```text
-fuente .aym  ->  lexer  ->  parser  ->  AST
+fuente .aym  ->  lexer  ->  parser  ->  AST  ->  intérprete
 ```
 
 No hay base de datos, interfaz gráfica ni capas de aplicación. Toda la
-lógica está en `src/main.rs`; el programa solo lee el archivo fuente y
-escribe el AST en la consola.
+lógica está en `src/main.rs`; el programa lee el archivo fuente, muestra
+el AST y ejecuta las sentencias en la consola.
 
 Estructura
 ----------
@@ -118,6 +144,8 @@ cargo run -- main.aym
 ```
 
 Si no se indica un archivo, el programa analiza un ejemplo interno.
+
+Al ejecutarse, primero muestra el AST y después la salida del programa.
 
 Nota de migración
 -----------------

@@ -4,10 +4,11 @@ Hoja de ruta del compilador Aimara
 Estado de partida
 -----------------
 
-Hoy el proyecto recorre solamente la primera parte del proceso:
+Hoy el proyecto recorre la primera parte del proceso y ejecuta el AST con
+un intérprete sencillo:
 
 ```text
-fuente .aym  ->  lexer  ->  parser  ->  AST
+fuente .aym  ->  lexer  ->  parser  ->  AST  ->  intérprete
 ```
 
 Todavía no existe la cadena completa:
@@ -24,6 +25,7 @@ columna **Estado** indica qué existe en el repositorio en este momento.
 | --- | --- | --- |
 | Análisis lexicográfico | Unidad 2 | Básico |
 | Análisis sintáctico | Unidad 3 | Básico |
+| Ejecución / intérprete | Apoyo didáctico | Básico |
 | Análisis semántico | Unidad 4 | Pendiente |
 | Gestión de tabla de símbolos | Unidades 1 y 4 | Pendiente |
 | Traducción / código intermedio | Unidad 5 | Pendiente |
@@ -35,15 +37,15 @@ Fase 1: análisis lexicográfico
 ------------------------------
 
 **Ya existe:** palabras reservadas aimaras, identificadores, enteros,
-flotantes, textos con escapes, símbolos y detección de errores léxicos
-básicos.
+flotantes, textos simples, símbolos, operadores `+` y `-`, e ignorado de
+caracteres desconocidos.
 
 **Falta:**
 
 - [ ] Guardar línea y columna de cada token para reportar errores con
       ubicación.
 - [ ] Agregar comentarios de línea y de bloque.
-- [ ] Reconocer operadores: `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`,
+- [ ] Reconocer el resto de operadores: `*`, `/`, `%`, `==`, `!=`, `<`,
       `<=`, `>`, `>=`, `&&`, `||`, `!`.
 - [ ] Reconocer booleanos `chiqa` y `kari` como literales utilizables.
 - [ ] Admitir números negativos y notación científica.
@@ -55,18 +57,19 @@ Fase 2: análisis sintáctico
 ---------------------------
 
 **Ya existe:** declaraciones con tipo, asignaciones, funciones sin
-parámetros e impresión con `qillqa`.
+parámetros, llamadas sin argumentos, `qillqa(expresión)` y expresiones con
+sumas y restas.
 
 **Falta:**
 
-- [ ] Implementar expresiones con precedencia y asociatividad:
-      aritmética, comparación, lógica y paréntesis.
+- [ ] Ampliar las expresiones: multiplicación, división, comparación,
+      lógica, precedencia y paréntesis.
 - [ ] Implementar `ukhamax` / `janukax` / `ukhamarak` (si / sino / sino si).
 - [ ] Implementar `kama` (mientras) y `taki` (para).
 - [ ] Implementar `kutta` (retornar), `paki` (romper) y `saranta`
       (continuar).
 - [ ] Agregar parámetros y argumentos a las funciones.
-- [ ] Agregar llamadas a funciones definidas por el usuario.
+- [ ] Agregar llamadas a funciones con argumentos.
 - [ ] Manejar bloques y ámbitos anidados.
 - [ ] Definir la gramática EBNF completa y mantenerla en `LENGUAJE.md`.
 - [ ] Mejorar la recuperación de errores sintácticos para reportar más de
